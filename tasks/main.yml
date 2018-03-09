@@ -1,0 +1,39 @@
+---
+# tasks file for ansible-pfsense-alias
+- name: create a tempfile to drop template into
+  connection: local
+  tempfile:
+    state: file
+    suffix: ansible_alias_update
+  register: aau_tmp
+  changed_when: False
+
+- name: setup template in tempfile
+  connection: local
+  template:
+    src: ansible_alias_update.j2
+    dest: "{{aau_tmp.path}}"
+  changed_when: False
+
+- name: copy template to pfsense
+  copy:
+    src: "{{aau_tmp.path}}"
+    dest: /etc/phpshellsessions/ansible_alias_update
+  register: aau_copied
+
+- name: run script on pfsense
+  raw: pfSsh.php playback ansible_alias_update
+  register: aau_run
+  when: aau_copied.changed
+  changed_when: aau_run.stdout != ""
+
+- name: debug info while testing
+  debug: var=aau_run
+  when: aau_copied.changed
+
+- name: delete tempfile
+  file:
+    state: absent
+    path: "{{aau_tmp.path}}"
+  changed_when: False
+

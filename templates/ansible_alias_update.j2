@@ -1,0 +1,79 @@
+$ansible_update_host = "{{host}}";
+$ansible_update_domain = "{{domain}}";
+
+$ansible_update_aliases = [
+{% for alias in aliases %}
+  [
+    "host" => "{{alias}}",
+    "domain" => "{{domain}}",
+    "description" => "ansible-auto",
+  ],
+{% endfor %}
+];
+$pfsense_aliases = False;
+
+$pfsense_dns_hosts = $config[unbound][hosts];
+$pfsense_host_index = False;
+foreach($pfsense_dns_hosts as $index => $pfsense_host) {
+  if($pfsense_host[domain] === $ansible_update_domain &&
+     $pfsense_host[host]   === $ansible_update_host) {
+    $pfsense_host_index = $index;
+    $pfsense_aliases = $pfsense_host[aliases][item];
+  }
+}
+
+if(!$pfsense_aliases) {
+  //bail out because we don't know what to update
+  echo "Failed, couldn't find host in unbound\n";
+  exit;
+}
+
+// add or update any ansible hosts
+$add_indexes = array();
+foreach($ansible_update_aliases as $ansible_update_host) {
+  $host_found = False;
+  foreach($pfsense_aliases as $pfsense_host) {
+    if($ansible_update_host[host] === $pfsense_host[host]) {
+      $host_found = True;
+      if($pfsense_host[description] === "ansible-auto") {
+        //update?
+      } else {
+        echo "Found host ", $name, " but not updating as it was not automated.\n";
+      }
+      break;
+    }
+  }
+  if(!$host_found) {
+    $add_indexes[] = $ansible_update_host;
+  }
+}
+
+// delete any ansible hosts that don't exist on pfsense
+$delete_indexes = array();
+foreach($pfsense_aliases as $index => $pfsense_host) {
+  $host_found = False;
+  foreach($ansible_update_aliases as $ansible_update_host) {
+    if($pfsense_host[host] === $ansible_update_host[host]) {
+      $host_found = True;
+      break;
+    }
+  }
+  if(!$host_found && $pfsense_host[description] === "ansible-auto") {
+    $delete_indexes[] = $index;
+  }
+}
+
+if(count($delete_indexes) || count($add_indexes)) {
+  foreach($delete_indexes as $index) {
+    unset($pfsense_aliases[$index]);
+  }
+
+  foreach($add_indexes as $host) {
+    $pfsense_aliases[] = $host;
+  }
+
+  $config[unbound][hosts][$pfsense_host_index][aliases][item] = array_values($pfsense_aliases);
+  write_config();
+  services_unbound_configure();
+  print_r($config[unbound][hosts][$pfsense_host_index][aliases][item]);
+}
