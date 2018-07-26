@@ -1,7 +1,7 @@
 ---
 # tasks file for ansible-pfsense-alias
 - name: create a tempfile to drop template into
-  connection: local
+  delegate_to: localhost
   tempfile:
     state: file
     suffix: ansible_alias_update
@@ -9,7 +9,7 @@
   changed_when: False
 
 - name: setup template in tempfile
-  connection: local
+  delegate_to: localhost
   template:
     src: ansible_alias_update.j2
     dest: "{{aau_tmp.path}}"
