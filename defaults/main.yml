@@ -1,6 +1,6 @@
 ---
 # defaults file for ansible-pfsense-alias
-host: www
-domain: example.com
-aliases:
+pfsense_alias_host: www
+pfsense_alias_domain: example.com
+pfsense_aliases:
   - demo

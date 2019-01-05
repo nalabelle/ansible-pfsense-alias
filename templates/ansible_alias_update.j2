@@ -1,11 +1,11 @@
-$ansible_update_host = "{{host}}";
-$ansible_update_domain = "{{domain}}";
+$ansible_update_host = "{{pfsense_alias_host}}";
+$ansible_update_domain = "{{pfsense_alias_domain}}";
 
 $ansible_update_aliases = [
-{% for alias in aliases %}
+{% for alias in pfsense_aliases %}
   [
     "host" => "{{alias}}",
-    "domain" => "{{domain}}",
+    "domain" => "{{pfsense_alias_domain}}",
     "description" => "ansible-auto",
   ],
 {% endfor %}
